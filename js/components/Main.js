@@ -21,7 +21,6 @@ export default class Main extends React.Component {
     LinkStore.removeListener("change", this.onChange);
   }
   onChange() {
-    console.log("4. In the View");
     this.setState(_getAppState());
   }
   render() {
