@@ -1,21 +1,35 @@
+import fs from 'fs';
 import express from 'express';
-import schema from './data/schema';
+import Schema from './data/schema';
 import GraphQLHTTP from 'express-graphql';
+import {graphql} from 'graphql';
+import {introspectionQuery} from 'graphql/utilities';
 
 import {MongoClient} from 'mongodb';
-
+let url = "mongodb://localhost:27017/rgrpoc"
 let app = express();
 app.use(express.static('public'));
 
-let db;
-MongoClient.connect(process.env.MONGO_URL, (err, database) => {
-  if (err) throw err;
+(async () => {
+  try {
+    let db = await MongoClient.connect(url);
+    let schema = Schema(db);
 
-  db = database;
-  app.use('/graphql', GraphQLHTTP({
-    schema: schema(db),
-    graphiql: true
-  }));
+    app.use('/graphql', GraphQLHTTP({
+      schema,
+      graphiql: true
+    }));
 
-  app.listen(3000, () => console.log('Listening on port 3000'));
-});
+    app.listen(3000, () => console.log('Listening on port 3000'));
+
+    // Generate schema.json
+    let json = await graphql(schema, introspectionQuery);
+    fs.writeFile('./data/schema.json', JSON.stringify(json, null, 2), err => {
+      if (err) throw err;
+
+      console.log("JSON schema created");
+    });
+  } catch(e) {
+    console.log(e);
+  }
+})();
